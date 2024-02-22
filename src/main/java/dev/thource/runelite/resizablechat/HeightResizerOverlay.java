@@ -17,38 +17,42 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.util.ImageUtil;
 
 @Singleton
-public class ResizerOverlay extends Overlay {
+public class HeightResizerOverlay extends Overlay {
 
   static final BufferedImage resizeIcon = ImageUtil.loadImageResource(ResizableChatPlugin.class,
       "resize.png");
 
-  @Inject private Client client;
-  @Inject private ResizableChatConfig config;
-  @Inject private ConfigManager configManager;
-  @Inject private ResizableChatPlugin plugin;
+  @Inject protected Client client;
+  @Inject protected ResizableChatConfig config;
+  @Inject protected ConfigManager configManager;
+  @Inject protected ResizableChatPlugin plugin;
 
-  private boolean isDragging;
-  private Point dragStartPos = null;
-  private int dragStartHeight;
+  protected boolean isDragging;
+  protected Point dragStartPos = null;
+  protected int dragStartValue;
 
   @Inject
-  ResizerOverlay() {
+  HeightResizerOverlay() {
     setPosition(OverlayPosition.DYNAMIC);
     setLayer(OverlayLayer.ABOVE_WIDGETS);
     setPriority(2f);
     setMovable(false);
   }
 
-  @Override
-  public Dimension render(Graphics2D graphics) {
+  protected boolean shouldRender() {
     if (config.resizingHandleMode() == ResizingHandleMode.NEVER
         || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !plugin.isInOverlayDragMode())
         || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1) {
-      return null;
+      return false;
     }
 
     Widget viewportChatboxParent = plugin.getViewportChatboxParent();
-    if (viewportChatboxParent == null) {
+    return viewportChatboxParent != null;
+  }
+
+  @Override
+  public Dimension render(Graphics2D graphics) {
+    if (!shouldRender()) {
       return null;
     }
 
@@ -58,10 +62,10 @@ public class ResizerOverlay extends Overlay {
     Point mousePos = client.getMouseCanvasPosition();
     if (isDragging) {
       int newHeight = Math.min(client.getCanvasHeight() - 24,
-          Math.max(142, dragStartHeight + (dragStartPos.getY() - mousePos.getY())));
+          Math.max(142, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
 
-      if (newHeight != config.chatSize()) {
-        configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatSize", newHeight);
+      if (newHeight != config.chatHeight()) {
+        configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newHeight);
       }
     }
 
@@ -71,7 +75,7 @@ public class ResizerOverlay extends Overlay {
   void startDragging() {
     isDragging = true;
     dragStartPos = client.getMouseCanvasPosition();
-    dragStartHeight = config.chatSize();
+    dragStartValue = config.chatHeight();
   }
 
   void stopDragging() {

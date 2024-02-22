@@ -13,3 +13,4 @@ Allows the chat to be resized when playing in resizable mode with transparent ch
 * Add resizing for fixed mode
 
 Check out the GitHub issues: https://github.com/Thource/resizable-chat/issues
+    

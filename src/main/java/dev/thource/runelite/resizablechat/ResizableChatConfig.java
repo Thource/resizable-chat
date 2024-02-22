@@ -14,12 +14,22 @@ public interface ResizableChatConfig extends Config {
 
   @Range(min = 142)
   @ConfigItem(
-      keyName = "chatSize",
-      name = "Chat size",
+      keyName = "chatHeight",
+      name = "Chat height",
       description = "How many pixels tall the chat should be."
   )
-  default int chatSize() {
+  default int chatHeight() {
     return 142;
+  }
+
+  @Range(min = 519)
+  @ConfigItem(
+      keyName = "chatWidth",
+      name = "Chat width",
+      description = "How many pixels wide the chat should be."
+  )
+  default int chatWidth() {
+    return 519;
   }
 
   @ConfigItem(

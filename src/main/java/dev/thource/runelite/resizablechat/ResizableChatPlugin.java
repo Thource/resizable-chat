@@ -43,7 +43,8 @@ public class ResizableChatPlugin extends Plugin {
   @Getter @Inject private ResizableChatConfig config;
   @Inject private RuneLiteConfig runeLiteConfig;
   @Inject private OverlayManager overlayManager;
-  @Inject private ResizerOverlay overlay;
+  @Inject private HeightResizerOverlay heightResizerOverlay;
+  @Inject private WidthResizerOverlay widthResizerOverlay;
   @Inject private MouseManager mouseManager;
   @Inject private KeyManager keyManager;
   @Inject private ResizerMouseAdapter mouseAdapter;
@@ -66,7 +67,8 @@ public class ResizableChatPlugin extends Plugin {
       }
     };
 
-    overlayManager.add(overlay);
+    overlayManager.add(heightResizerOverlay);
+    overlayManager.add(widthResizerOverlay);
     mouseManager.registerMouseListener(mouseAdapter);
     keyManager.registerKeyListener(hotkeyListener);
   }
@@ -74,7 +76,8 @@ public class ResizableChatPlugin extends Plugin {
 
   @Override
   protected void shutDown() {
-    overlayManager.remove(overlay);
+    overlayManager.remove(heightResizerOverlay);
+    overlayManager.remove(widthResizerOverlay);
     mouseManager.unregisterMouseListener(mouseAdapter);
     keyManager.unregisterKeyListener(hotkeyListener);
   }
@@ -97,13 +100,19 @@ public class ResizableChatPlugin extends Plugin {
     Widget viewportChatboxParent = getViewportChatboxParent();
 
     if (viewportChatboxParent == null) {
-      overlay.setBounds(new Rectangle());
+      heightResizerOverlay.setBounds(new Rectangle());
+      widthResizerOverlay.setBounds(new Rectangle());
     } else {
       // widget.isHidden needs to be called in the client thread, so we must setBounds instead
       Rectangle bounds = viewportChatboxParent.getBounds();
-      overlay.setBounds(
+      heightResizerOverlay.setBounds(
           new Rectangle((int) bounds.getCenterX() - 4, Math.max(0, (int) bounds.getY() - 1),
-              ResizerOverlay.resizeIcon.getWidth(), ResizerOverlay.resizeIcon.getHeight()));
+              HeightResizerOverlay.resizeIcon.getWidth(),
+              HeightResizerOverlay.resizeIcon.getHeight()));
+      widthResizerOverlay.setBounds(
+          new Rectangle((int) bounds.getMaxX() - 14, Math.max(0, (int) bounds.getCenterY() - 8),
+              WidthResizerOverlay.resizeIcon.getWidth(),
+              WidthResizerOverlay.resizeIcon.getHeight()));
     }
 
     resizeChatbox();
@@ -156,16 +165,22 @@ public class ResizableChatPlugin extends Plugin {
     Widget viewportChatboxParent = getViewportChatboxParent();
     Widget chatboxBackgroundLines = client.getWidget(
         ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
+    Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
-    if (viewportChatboxParent == null || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1
-        || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden())) {
+    if (viewportChatboxParent == null
+        || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1
+        || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden())
+        || chatboxFrame == null) {
       resetChatbox();
       return;
     }
 
     int oldHeight = viewportChatboxParent.getOriginalHeight();
-    int newHeight = config.chatSize();
-    if (oldHeight == newHeight + 23) {
+    int newHeight = config.chatHeight();
+    int oldWidth = viewportChatboxParent.getOriginalWidth();
+    int newWidth = config.chatWidth();
+    if (oldHeight == newHeight + 23 && oldWidth == newWidth
+        && chatboxFrame.getOriginalWidth() == newWidth) {
       return;
     }
 
@@ -178,6 +193,9 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     viewportChatboxParent.setOriginalHeight(newHeight + 23);
+    viewportChatboxParent.setOriginalWidth(newWidth);
+
+    chatboxFrame.setOriginalWidth(newWidth);
 
     chatboxParent.setOriginalHeight(viewportChatboxParent.getOriginalHeight());
     chatboxParent.setOriginalWidth(viewportChatboxParent.getOriginalWidth());
@@ -188,9 +206,13 @@ public class ResizableChatPlugin extends Plugin {
     if (bgLines != null) {
       for (int i = 0; i < bgLines.length; i++) {
         Widget bg = chatboxBackground.getChildren()[i];
-        int lineHeight = newHeight / 10;
+        int lineHeight = newHeight / 20;
 
-        bg.setOriginalHeight(lineHeight);
+        if (i == bgLines.length - 1) {
+          bg.setOriginalHeight(newHeight - (lineHeight * 19)); // fill the rest of the space
+        } else {
+          bg.setOriginalHeight(lineHeight);
+        }
         bg.setOriginalY(i * lineHeight);
       }
     }

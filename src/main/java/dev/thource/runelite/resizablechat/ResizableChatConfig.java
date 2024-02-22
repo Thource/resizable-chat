@@ -36,6 +36,10 @@ public interface ResizableChatConfig extends Config {
       keyName = "resizingHandleMode",
       name = "Resizing handle mode",
       description = "Sets the behaviour for when the resizing handle should be shown."
+          + "<br><br>"
+          + "Always: Always show the handles<br>"
+          + "Drag mode: Only show the handles when holding the drag hotkey (RuneLite config)<br>"
+          + "Never: Never show the handles"
   )
   default ResizingHandleMode resizingHandleMode() {
     return ResizingHandleMode.ALWAYS;

@@ -9,8 +9,6 @@ import net.runelite.api.Client;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.FocusChanged;
-import net.runelite.api.events.ScriptPostFired;
-import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -164,10 +162,7 @@ public class ResizableChatPlugin extends Plugin {
     client.refreshChat();
 
     // This solves a bug that occurs after chat is hidden
-    Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
-    if (chatboxFrame == null || chatboxFrame.isHidden()) {
-      dialogsNeedFixing = true;
-    }
+    dialogsNeedFixing = true;
   }
 
   private void resizeChatbox() {
@@ -230,26 +225,6 @@ public class ResizableChatPlugin extends Plugin {
 
     recursiveRevalidate(viewportChatboxParent);
     client.refreshChat();
-  }
-
-  @Subscribe
-  public void onScriptPreFired(ScriptPreFired scriptPreFired) {
-    if (
-        scriptPreFired.getScriptId() == 80 // Fix dialogs with 3d models
-            || scriptPreFired.getScriptId() == 107 // Fix pm dialog
-    ) {
-      resetChatbox();
-      dialogsNeedFixing = true;
-    }
-  }
-
-  @Subscribe
-  public void onScriptPostFired(ScriptPostFired scriptPostFired) {
-    if (
-        scriptPostFired.getScriptId() == 677 // Fix pm dialog
-    ) {
-      dialogsNeedFixing = true;
-    }
   }
 
   private void recursiveRevalidate(Widget widget) {

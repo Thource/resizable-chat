@@ -140,8 +140,6 @@ public class ResizableChatPlugin extends Plugin {
       return;
     }
 
-    System.out.println("resetChatbox");
-
     Widget viewportChatboxParent = getViewportChatboxParent();
 
     if (viewportChatboxParent != null && !viewportChatboxParent.isHidden()) {
@@ -187,8 +185,6 @@ public class ResizableChatPlugin extends Plugin {
         && chatboxFrame.getOriginalWidth() == newWidth) {
       return;
     }
-
-    System.out.println("resizeChatbox");
 
     Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
     Widget chatboxBackground = client.getWidget(

@@ -30,12 +30,7 @@ import net.runelite.client.util.HotkeyListener;
  * playing in resizable mode.
  */
 @Slf4j
-@PluginDescriptor(
-        name = "Resizable Chat",
-        description = "Allows the chat to be resized when playing in resizable mode with transparent "
-                + "chat.",
-        tags = {"resize chat"}
-)
+@PluginDescriptor(name = "Resizable Chat", description = "Allows the chat to be resized when playing in resizable mode with transparent " + "chat.", tags = {"resize chat"})
 public class ResizableChatPlugin extends Plugin {
 
     HotkeyListener hotkeyListener;
@@ -120,24 +115,16 @@ public class ResizableChatPlugin extends Plugin {
         } else {
             // widget.isHidden needs to be called in the client thread, so we must setBounds instead
             Rectangle bounds = viewportChatboxParent.getBounds();
-            heightResizerOverlay.setBounds(
-                    new Rectangle((int) bounds.getCenterX() - 4, Math.max(0, (int) bounds.getY() - 1),
-                            HeightResizerOverlay.resizeIcon.getWidth(),
-                            HeightResizerOverlay.resizeIcon.getHeight()));
-            widthResizerOverlay.setBounds(
-                    new Rectangle((int) bounds.getMaxX() - 14, Math.max(0, (int) bounds.getCenterY() - 8),
-                            WidthResizerOverlay.resizeIcon.getWidth(),
-                            WidthResizerOverlay.resizeIcon.getHeight()));
+            heightResizerOverlay.setBounds(new Rectangle((int) bounds.getCenterX() - 4, Math.max(0, (int) bounds.getY() - 1), HeightResizerOverlay.resizeIcon.getWidth(), HeightResizerOverlay.resizeIcon.getHeight()));
+            widthResizerOverlay.setBounds(new Rectangle((int) bounds.getMaxX() - 14, Math.max(0, (int) bounds.getCenterY() - 8), WidthResizerOverlay.resizeIcon.getWidth(), WidthResizerOverlay.resizeIcon.getHeight()));
         }
 
         resizeChatbox();
     }
 
     Widget getViewportChatboxParent() {
-        Widget resizableModernChatboxParent = client.getWidget(
-                ComponentID.RESIZABLE_VIEWPORT_BOTTOM_LINE_CHATBOX_PARENT);
-        Widget resizableClassicChatboxParent = client.getWidget(
-                ComponentID.RESIZABLE_VIEWPORT_CHATBOX_PARENT);
+        Widget resizableModernChatboxParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_BOTTOM_LINE_CHATBOX_PARENT);
+        Widget resizableClassicChatboxParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_CHATBOX_PARENT);
 
         if (resizableModernChatboxParent != null && !resizableModernChatboxParent.isHidden()) {
             return resizableModernChatboxParent;
@@ -179,32 +166,35 @@ public class ResizableChatPlugin extends Plugin {
         dialogsNeedFixing = true;
     }
 
-    private void resizeChatbox() {
+    public boolean shouldReset() {
         Widget viewportChatboxParent = getViewportChatboxParent();
-        Widget chatboxBackgroundLines = client.getWidget(
-                ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
+        Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
-        if (viewportChatboxParent == null
-                || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1
-                || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden())
-                || chatboxFrame == null) {
+        return viewportChatboxParent == null || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1 || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
+    }
+
+
+    private void resizeChatbox() {
+
+        if (shouldReset()) {
             resetChatbox();
             return;
         }
+
+        Widget viewportChatboxParent = getViewportChatboxParent();
+        Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
         int oldHeight = viewportChatboxParent.getOriginalHeight();
         int newHeight = config.chatHeight();
         int oldWidth = viewportChatboxParent.getOriginalWidth();
         int newWidth = config.chatWidth();
-        if (oldHeight == newHeight + 23 && oldWidth == newWidth
-                && chatboxFrame.getOriginalWidth() == newWidth) {
+        if (oldHeight == newHeight + 23 && oldWidth == newWidth && chatboxFrame.getOriginalWidth() == newWidth) {
             return;
         }
 
         Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
-        Widget chatboxBackground = client.getWidget(
-                ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+        Widget chatboxBackground = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
 
         if (chatboxParent == null || chatboxBackground == null) {
             return;
@@ -238,6 +228,7 @@ public class ResizableChatPlugin extends Plugin {
         recursiveRevalidate(viewportChatboxParent);
         client.refreshChat();
     }
+
 
     private void recursiveRevalidate(Widget widget) {
         if (widget == null) {

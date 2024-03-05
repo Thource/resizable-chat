@@ -45,6 +45,9 @@ public class HeightResizerOverlay extends Overlay {
     }
 
     protected boolean shouldRender() {
+        if (plugin.shouldReset()) {
+            return false;
+        }
         if (config.resizingHandleMode() == ResizingHandleMode.NEVER
                 || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !plugin.isInOverlayDragMode())
                 || client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) != 1) {

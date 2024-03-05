@@ -46,4 +46,5 @@ public interface ResizableChatConfig extends Config {
     default ResizingHandleMode resizingHandleMode() {
         return ResizingHandleMode.ALWAYS;
     }
+
 }

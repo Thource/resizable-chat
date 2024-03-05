@@ -2,17 +2,18 @@ package dev.thource.runelite.resizablechat;
 
 import com.google.inject.Provides;
 
+
 import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.Objects;
 import javax.inject.Inject;
 
+import dev.thource.runelite.resizablechat.ui.UiManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.SpriteID;
-import net.runelite.api.Varbits;
-import net.runelite.api.events.ClientTick;
-import net.runelite.api.events.FocusChanged;
+import net.runelite.api.*;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -20,8 +21,8 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.SpriteManager;
-import net.runelite.client.input.KeyManager;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -36,14 +37,6 @@ import net.runelite.client.util.ImageUtil;
 @Slf4j
 @PluginDescriptor(name = "Resizable Chat", description = "Allows the chat to be resized when playing in resizable mode with transparent " + "chat.", tags = {"resize chat"})
 public class ResizableChatPlugin extends Plugin {
-
-    public static final BufferedImage resizeV = ImageUtil.loadImageResource(ResizableChatPlugin.class, "resizeV.png");
-
-    public static final BufferedImage resizeH = ImageUtil.loadImageResource(ResizableChatPlugin.class, "resizeH.png");
-    public static final BufferedImage resizeVBrown = ImageUtil.loadImageResource(ResizableChatPlugin.class, "resizeVBrown.png");
-
-    public static final BufferedImage resizeHBrown = ImageUtil.loadImageResource(ResizableChatPlugin.class, "resizeHBrown.png");
-
 
     HotkeyListener hotkeyListener;
     @Getter
@@ -61,23 +54,25 @@ public class ResizableChatPlugin extends Plugin {
     private OverlayManager overlayManager;
 
     @Inject
-    private HeightResizerOverlay heightResizerOverlay;
-    @Inject
-    private WidthResizerOverlay widthResizerOverlay;
-    @Inject
-    private ChatboxSpriteOverlay chatboxSpriteOverlay;
-    @Inject
     private MouseManager mouseManager;
-    @Inject
-    private KeyManager keyManager;
-    @Inject
-    private ResizerMouseAdapter mouseAdapter;
+
     @Getter
     private boolean inOverlayDragMode;
     private boolean dialogsNeedFixing;
+    @com.google.inject.Inject
+    public SpriteManager spriteManager;
+
+    @Inject
+    public UiManager uiManager;
+
+    @Inject
+    public ConfigManager configManager;
 
     @Override
     protected void startUp() {
+
+        spriteManager.addSpriteOverrides(CustomSprites.values());
+
         hotkeyListener = new HotkeyListener(runeLiteConfig::dragHotkey) {
             @Override
             public void hotkeyPressed() {
@@ -92,28 +87,30 @@ public class ResizableChatPlugin extends Plugin {
             }
         };
 
-        overlayManager.add(heightResizerOverlay);
-        overlayManager.add(widthResizerOverlay);
-        overlayManager.add(chatboxSpriteOverlay);
-        mouseManager.registerMouseListener(mouseAdapter);
-        keyManager.registerKeyListener(hotkeyListener);
     }
+
 
     private void setupNonTransparentChatBox() {
         Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
-        if (chatboxBackgroundLines != null) {
-            chatboxBackgroundLines.setHidden(client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 0);
-        }
     }
 
 
     @Override
     protected void shutDown() {
-        overlayManager.remove(heightResizerOverlay);
-        overlayManager.remove(widthResizerOverlay);
-        overlayManager.remove(chatboxSpriteOverlay);
-        mouseManager.unregisterMouseListener(mouseAdapter);
-        keyManager.unregisterKeyListener(hotkeyListener);
+        spriteManager.removeSpriteOverrides(CustomSprites.values());
+        clientThread.invoke(() -> {
+            resetChatbox();
+            uiManager.shutDown();
+        });
+    }
+
+    @Subscribe
+    public void onGameStateChanged(GameStateChanged e)
+    {
+        if (e.getGameState() == GameState.LOGIN_SCREEN || e.getGameState() == GameState.HOPPING)
+        {
+            uiManager.setUiCreated(false);
+        }
     }
 
     @Subscribe
@@ -131,21 +128,9 @@ public class ResizableChatPlugin extends Plugin {
             return;
         }
 
-        Widget viewportChatboxParent = getViewportChatboxParent();
 
-        if (viewportChatboxParent == null) {
-            heightResizerOverlay.setBounds(new Rectangle());
-            widthResizerOverlay.setBounds(new Rectangle());
-            chatboxSpriteOverlay.setBounds(new Rectangle());
-        } else {
-            // widget.isHidden needs to be called in the client thread, so we must setBounds instead
-            Rectangle bounds = viewportChatboxParent.getBounds();
-            heightResizerOverlay.setBounds(new Rectangle((int) bounds.getCenterX() - 4, Math.max(0, (int) bounds.getY() - 1), resizeV.getWidth(), resizeV.getHeight()));
-            widthResizerOverlay.setBounds(new Rectangle((int) bounds.getMaxX() - 14, Math.max(0, (int) bounds.getCenterY() - 8), resizeH.getWidth(), resizeH.getHeight()));
-
-            chatboxSpriteOverlay.setBounds(new Rectangle(0, 0, config.chatWidth(), config.chatHeight()));
-        }
-
+        checkResizing();
+        uiManager.create();
         resizeChatbox();
     }
 
@@ -164,7 +149,7 @@ public class ResizableChatPlugin extends Plugin {
         return null;
     }
 
-    private void resetChatbox() {
+    public void resetChatbox() {
         Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
         if (chatboxParent == null || chatboxParent.getOriginalHeight() == 0) {
             return;
@@ -193,12 +178,89 @@ public class ResizableChatPlugin extends Plugin {
         dialogsNeedFixing = true;
     }
 
+    @Subscribe
+    public void onVarbitChanged(VarbitChanged e)
+    {
+        uiManager.onVarbitChanged();
+    }
+
     public boolean shouldReset() {
         Widget viewportChatboxParent = getViewportChatboxParent();
         Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
-        return viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
+        boolean state = viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
+
+        uiManager.hideButtons(state);
+
+        return state;
+    }
+
+    protected boolean isDragging;
+    protected boolean isDraggingV;
+    protected boolean isDraggingH;
+    protected Point dragStartPos = null;
+    protected int dragStartValue;
+
+    public void startDragging(boolean isVertical) {
+        if (isVertical) {
+            isDraggingV = true;
+        } else {
+            isDraggingH = true;
+        }
+        dragStartPos = client.getMouseCanvasPosition();
+        dragStartValue = isVertical ? config.chatHeight() : config.chatWidth();
+    }
+
+    @Subscribe
+    public void onResizeableChanged(ResizeableChanged e)
+    {
+        uiManager.onResizeableChanged();
+    }
+
+    public void stopDragging() {
+        isDraggingV = false;
+        isDraggingH = false;
+    }
+
+    protected boolean shouldRender() {
+        if (shouldReset()) {
+            return false;
+        }
+        if (config.resizingHandleMode() == ResizingHandleMode.NEVER
+                || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !isInOverlayDragMode())) {
+            return false;
+        }
+
+        Widget viewportChatboxParent = getViewportChatboxParent();
+        return viewportChatboxParent != null;
+    }
+
+    public void checkResizing() {
+        if (!shouldRender()) {
+            return;
+        }
+
+        if (config.resizingHandleMode() == ResizingHandleMode.NEVER || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !isInOverlayDragMode())) {
+            return;
+        }
+
+        if (isDraggingV || isDraggingH) {
+            Point mousePos = client.getMouseCanvasPosition();
+            int newDimension;
+
+            if (isDraggingV) {
+                newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(142, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
+                if (newDimension != config.chatHeight()) {
+                    configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
+                }
+            } else if (isDraggingH) {
+                newDimension = Math.min(client.getCanvasWidth() - 24, Math.max(519, dragStartValue + (mousePos.getX() - dragStartPos.getX())));
+                if (newDimension != config.chatWidth()) {
+                    configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatWidth", newDimension);
+                }
+            }
+        }
     }
 
 
@@ -208,7 +270,6 @@ public class ResizableChatPlugin extends Plugin {
             resetChatbox();
             return;
         }
-        setupNonTransparentChatBox();
 
         Widget viewportChatboxParent = getViewportChatboxParent();
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
@@ -255,10 +316,12 @@ public class ResizableChatPlugin extends Plugin {
 
         recursiveRevalidate(viewportChatboxParent);
         client.refreshChat();
+
+        uiManager.onChatBoxResized();
     }
 
 
-    private void recursiveRevalidate(Widget widget) {
+    public void recursiveRevalidate(Widget widget) {
         if (widget == null) {
             return;
         }

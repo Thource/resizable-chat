@@ -1,7 +1,6 @@
 package dev.thource.runelite.resizablechat.ui;
 
 import net.runelite.api.ScriptEvent;
-import net.runelite.api.Varbits;
 import net.runelite.api.widgets.Widget;
 
 public abstract class UI {

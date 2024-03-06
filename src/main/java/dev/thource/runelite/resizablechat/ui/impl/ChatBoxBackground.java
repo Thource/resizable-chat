@@ -5,12 +5,12 @@ import dev.thource.runelite.resizablechat.CustomSprites;
 import dev.thource.runelite.resizablechat.ResizableChatConfig;
 import dev.thource.runelite.resizablechat.ResizableChatPlugin;
 import dev.thource.runelite.resizablechat.ui.UI;
-import net.runelite.api.*;
+import net.runelite.api.Client;
+import net.runelite.api.ScriptEvent;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetType;
-import net.runelite.client.config.ConfigManager;
 
 /**
  * UI class for ChatBoxBackground.
@@ -22,9 +22,6 @@ public class ChatBoxBackground extends UI {
 
     private final Client client;
     private final ResizableChatConfig config;
-    private final ConfigManager configManager;
-
-    private final ResizableChatPlugin plugin;
 
     private Widget topLeftBrace;
     private Widget topRightBrace;
@@ -40,14 +37,12 @@ public class ChatBoxBackground extends UI {
     /**
      * Constructor for ChatBoxBackground.
      *
-     * @param client  The RuneLite client.
-     * @param plugin  The ResizableChatPlugin instance.
+     * @param client The RuneLite client.
+     * @param plugin The ResizableChatPlugin instance.
      */
     public ChatBoxBackground(Client client, ResizableChatPlugin plugin) {
         this.client = client;
         this.config = plugin.getConfig();
-        this.configManager = plugin.configManager;
-        this.plugin = plugin;
     }
 
     /**
@@ -57,8 +52,6 @@ public class ChatBoxBackground extends UI {
      */
     @Override
     public void create(Widget parent) {
-
-
         setupBackground();
 
         topLeftBrace = createSpriteWidget(BORDER_SIZE, BORDER_SIZE);
@@ -80,9 +73,7 @@ public class ChatBoxBackground extends UI {
         rightSide.setSpriteId(957);
         bottomSide.setSpriteId(956);
 
-        updateBox(config.chatWidth(),config.chatHeight());
-
-
+        updateBox(config.chatWidth(), config.chatHeight());
     }
 
     private void updateBox(int width, int height) {
@@ -92,15 +83,15 @@ public class ChatBoxBackground extends UI {
 
         setupBackground();
 
-        setSize(topLeftBrace,BORDER_SIZE, BORDER_SIZE);
-        setSize(topRightBrace,BORDER_SIZE, BORDER_SIZE);
-        setSize(bottomLeftBrace,BORDER_SIZE, BORDER_SIZE);
-        setSize(bottomRightBrace,BORDER_SIZE, BORDER_SIZE);
+        setSize(topLeftBrace, BORDER_SIZE, BORDER_SIZE);
+        setSize(topRightBrace, BORDER_SIZE, BORDER_SIZE);
+        setSize(bottomLeftBrace, BORDER_SIZE, BORDER_SIZE);
+        setSize(bottomRightBrace, BORDER_SIZE, BORDER_SIZE);
 
-        setSize(leftSide,BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
-        setSize(topSide,config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
-        setSize(rightSide,BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
-        setSize(bottomSide,config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
+        setSize(leftSide, BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
+        setSize(topSide, config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
+        setSize(rightSide, BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
+        setSize(bottomSide, config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
 
 
         layoutWidget(topLeftBrace, x, y);
@@ -128,6 +119,10 @@ public class ChatBoxBackground extends UI {
     }
 
     public void hideChatbox(boolean state) {
+        if (topLeftBrace == null) {
+            return;
+        }
+
         topLeftBrace.setHidden(state);
         topRightBrace.setHidden(state);
         bottomLeftBrace.setHidden(state);
@@ -139,22 +134,21 @@ public class ChatBoxBackground extends UI {
     }
 
 
-    protected void layoutWidget(Widget w, int x, int y)
-    {
+    protected void layoutWidget(Widget w, int x, int y) {
         w.setOriginalX(x);
         w.setOriginalY(y);
         w.revalidate();
     }
 
-    protected void setSize(Widget w,int width, int height)
-    {
+    protected void setSize(Widget w, int width, int height) {
         w.setOriginalWidth(width);
         w.setOriginalHeight(height);
     }
 
-    protected Widget createSpriteWidget(int width, int height)
-    {
-        final Widget w = client.getWidget(WidgetInfo.CHATBOX).createChild(-1, WidgetType.GRAPHIC);
+    protected Widget createSpriteWidget(int width, int height) {
+        Widget chatbox = client.getWidget(WidgetInfo.CHATBOX);
+
+        final Widget w = chatbox.createChild(-1, WidgetType.GRAPHIC);
         w.setOriginalWidth(width);
         w.setOriginalHeight(height);
         w.setSpriteTiling(true);
@@ -163,17 +157,15 @@ public class ChatBoxBackground extends UI {
 
     @Override
     protected void onButtonClicked(ScriptEvent scriptEvent) {
-
+        // do nothing
     }
 
     @Override
     protected void onVarbitChanged() {
-
+        // do nothing
     }
 
     public void onResize() {
-        updateBox(config.chatWidth(),config.chatHeight());
+        updateBox(config.chatWidth(), config.chatHeight());
     }
-
-
 }

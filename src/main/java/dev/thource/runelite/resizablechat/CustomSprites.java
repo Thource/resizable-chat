@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.game.SpriteOverride;
 
+@Getter
 @RequiredArgsConstructor
 public enum CustomSprites implements SpriteOverride {
     RESIZE_H(-2365, "resizeH.png"),
@@ -16,10 +17,6 @@ public enum CustomSprites implements SpriteOverride {
     RESIZE_V_BROWN_H(-2372, "resizeVBrownH.png"),
     RESIZE_H_BROWN_H(-2373, "resizeHBrownH.png");
 
-
-    @Getter
     private final int spriteId;
-
-    @Getter
     private final String fileName;
 }

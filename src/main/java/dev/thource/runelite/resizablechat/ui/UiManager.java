@@ -11,10 +11,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Varbits;
-import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.client.callback.ClientThread;
 
 import java.util.ArrayList;
 
@@ -22,33 +20,25 @@ import java.util.ArrayList;
 @Slf4j
 public class UiManager {
 
+    private final Client client;
+    private final ResizableChatPlugin plugin;
+    private final ArrayList<ResizeButtons> resizeButtons = new ArrayList<>();
+    private final ChatBoxBackground chatBoxBackground;
     @Getter
     @Setter
     private boolean uiCreated = false;
 
-    private final Client client;
-    private final ClientThread clientThread;
-
-    private ResizableChatPlugin plugin;
-
-
-    private ArrayList<ResizeButtons> resizeButtons = new ArrayList<>();
-
-    private ChatBoxBackground chatBoxBackground;
-
     @Inject
-    UiManager(Client client, ClientThread clientThread, ResizableChatPlugin plugin) {
+    UiManager(Client client, ResizableChatPlugin plugin) {
         this.client = client;
         this.plugin = plugin;
-        this.clientThread = clientThread;
-        resizeButtons.add(new ResizeButtons(ResizeType.VERTICAL,client,plugin));
-        resizeButtons.add(new ResizeButtons(ResizeType.HORIZONTAL,client,plugin));
-        chatBoxBackground = new ChatBoxBackground(client,plugin);
+        resizeButtons.add(new ResizeButtons(ResizeType.VERTICAL, client, plugin));
+        resizeButtons.add(new ResizeButtons(ResizeType.HORIZONTAL, client, plugin));
+        chatBoxBackground = new ChatBoxBackground(client, plugin);
     }
 
     Widget getContainer() {
-        final Widget equipment = client.getWidget(InterfaceID.CHATBOX, 0);
-        return equipment.getParent();
+        return client.getWidget(InterfaceID.CHATBOX, 0).getParent();
     }
 
     public void shutDown() {
@@ -69,10 +59,10 @@ public class UiManager {
         if (uiCreated || !client.isResized()) return;
         try {
             chatBoxBackground.create(getContainer());
-            resizeButtons.forEach( resizeButtons -> resizeButtons.create(getContainer()));
+            resizeButtons.forEach(button -> button.create(getContainer()));
             chatBoxBackground.setupBackground();
             uiCreated = true;
-        }catch (Exception e) {
+        } catch (Exception e) {
             uiCreated = false;
         }
     }
@@ -86,16 +76,12 @@ public class UiManager {
         resizeButtons.forEach(ResizeButtons::onVarbitChanged);
 
         boolean isNotTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
-        System.out.println("sdfsd");
         chatBoxBackground.hideChatbox(isNotTransparent);
-
     }
 
     public void hideButtons(boolean state) {
         if (!uiCreated) return;
 
-        resizeButtons.forEach(resizeButtons -> resizeButtons.slider.setHidden(state));
-
+        resizeButtons.forEach(button -> button.getSlider().setHidden(state));
     }
-
 }

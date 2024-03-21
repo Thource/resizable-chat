@@ -12,7 +12,7 @@ public interface ResizableChatConfig extends Config {
 
   String CONFIG_GROUP = "resizableChat";
 
-  @Range(min = 142)
+  @Range(min = 28)
   @ConfigItem(
       keyName = "chatHeight",
       name = "Chat height",

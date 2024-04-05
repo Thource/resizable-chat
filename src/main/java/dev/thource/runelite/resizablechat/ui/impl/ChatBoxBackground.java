@@ -7,9 +7,9 @@ import dev.thource.runelite.resizablechat.ResizableChatPlugin;
 import dev.thource.runelite.resizablechat.ui.UI;
 import net.runelite.api.Client;
 import net.runelite.api.ScriptEvent;
+import net.runelite.api.Varbits;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetType;
 
 /**
@@ -74,12 +74,31 @@ public class ChatBoxBackground extends UI {
         bottomSide.setSpriteId(956);
 
         updateBox(config.chatWidth(), config.chatHeight());
+
+        boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
+        if (isTransparent) {
+            hideBorders(true);
+        }
+    }
+
+    @Override
+    public void destroy(Widget parent) {
+        Widget chatbox = client.getWidget(ComponentID.CHATBOX_FRAME);
+        Widget[] children = chatbox.getChildren();
+
+        children[topLeftBrace.getIndex()] = null;
+        children[topRightBrace.getIndex()] = null;
+        children[bottomLeftBrace.getIndex()] = null;
+        children[bottomRightBrace.getIndex()] = null;
+        children[leftSide.getIndex()] = null;
+        children[topSide.getIndex()] = null;
+        children[rightSide.getIndex()] = null;
+        children[bottomSide.getIndex()] = null;
     }
 
     private void updateBox(int width, int height) {
-
         int x = 0;
-        int y = 0;
+        int y = 4;
 
         setupBackground();
 
@@ -110,15 +129,15 @@ public class ChatBoxBackground extends UI {
         Widget w = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
 
         Widget child = w.getChild(0);
-        child.setRelativeY(0);
+        // These are deprecated but using originalY and originalWidth/Height doesn't work for this one?
+        child.setRelativeY(4);
         child.setSpriteId(CustomSprites.BACKGROUND.getSpriteId());
         child.setWidth(config.chatWidth());
         child.setHeight(config.chatHeight());
         child.setSpriteTiling(true);
-
     }
 
-    public void hideChatbox(boolean state) {
+    public void hideBorders(boolean state) {
         if (topLeftBrace == null) {
             return;
         }
@@ -146,7 +165,7 @@ public class ChatBoxBackground extends UI {
     }
 
     protected Widget createSpriteWidget(int width, int height) {
-        Widget chatbox = client.getWidget(WidgetInfo.CHATBOX);
+        Widget chatbox = client.getWidget(ComponentID.CHATBOX_FRAME);
 
         final Widget w = chatbox.createChild(-1, WidgetType.GRAPHIC);
         w.setOriginalWidth(width);

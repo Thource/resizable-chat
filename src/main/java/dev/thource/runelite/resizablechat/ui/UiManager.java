@@ -48,6 +48,9 @@ public class UiManager {
     public void reset() {
         uiCreated = false;
         plugin.resetChatbox();
+
+        resizeButtons.forEach(b -> b.destroy(getContainer()));
+        chatBoxBackground.destroy(getContainer());
     }
 
     public void onResizeableChanged() {
@@ -57,10 +60,10 @@ public class UiManager {
 
     public void create() {
         if (uiCreated || !client.isResized()) return;
+
         try {
             chatBoxBackground.create(getContainer());
             resizeButtons.forEach(button -> button.create(getContainer()));
-            chatBoxBackground.setupBackground();
             uiCreated = true;
         } catch (Exception e) {
             uiCreated = false;
@@ -75,8 +78,8 @@ public class UiManager {
     public void onVarbitChanged() {
         resizeButtons.forEach(ResizeButtons::onVarbitChanged);
 
-        boolean isNotTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
-        chatBoxBackground.hideChatbox(isNotTransparent);
+        boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
+        chatBoxBackground.hideBorders(isTransparent);
     }
 
     public void hideButtons(boolean state) {

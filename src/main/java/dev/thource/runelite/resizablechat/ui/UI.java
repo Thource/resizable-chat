@@ -6,6 +6,8 @@ import net.runelite.api.widgets.Widget;
 public abstract class UI {
     protected abstract void create(Widget parent);
 
+    protected abstract void destroy(Widget parent);
+
     protected abstract void onButtonClicked(ScriptEvent scriptEvent);
 
     protected abstract void onVarbitChanged();

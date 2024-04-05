@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Point;
+import net.runelite.api.Varbits;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.FocusChanged;
 import net.runelite.api.events.GameStateChanged;
@@ -84,7 +85,11 @@ public class ResizableChatPlugin extends Plugin {
     @Override
     protected void shutDown() {
         spriteManager.removeSpriteOverrides(CustomSprites.values());
-        clientThread.invoke(() -> uiManager.shutDown());
+        clientThread.invoke(() -> {
+            uiManager.shutDown();
+            resetChatbox();
+            client.runScript(924);
+        });
     }
 
     @Subscribe
@@ -178,10 +183,19 @@ public class ResizableChatPlugin extends Plugin {
 
     public void startDragging(boolean isVertical) {
         if (isVertical) {
+            if (isDraggingV) {
+                return;
+            }
+
             isDraggingV = true;
         } else {
+            if (isDraggingH) {
+                return;
+            }
+
             isDraggingH = true;
         }
+
         dragStartPos = client.getMouseCanvasPosition();
         dragStartValue = isVertical ? config.chatHeight() : config.chatWidth();
     }
@@ -256,20 +270,44 @@ public class ResizableChatPlugin extends Plugin {
 
         Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
         Widget chatboxBackground = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+        Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
 
-        if (chatboxParent == null || chatboxBackground == null) {
+        if (chatboxParent == null || chatboxBackground == null || chatboxBackgroundLines == null) {
             return;
         }
 
-        viewportChatboxParent.setOriginalHeight(newHeight + 23);
-        viewportChatboxParent.setOriginalWidth(newWidth);
+        boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
 
-        chatboxFrame.setOriginalWidth(newWidth);
+        if (isTransparent) {
+            viewportChatboxParent.setOriginalHeight(newHeight + 23);
+            viewportChatboxParent.setOriginalWidth(newWidth + 8);
+            chatboxBackground.setOriginalY(0);
+            chatboxBackground.setOriginalWidth(8);
+            chatboxBackground.setOriginalHeight(0);
+
+            // Fixes issue with scrollbar being under side border
+            chatboxBackgroundLines.setOriginalWidth(28);
+            chatboxBackgroundLines.setOriginalHeight(16);
+            chatboxBackgroundLines.setOriginalY(3);
+        } else {
+            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 4);
+            viewportChatboxParent.setOriginalWidth(newWidth + 4);
+            chatboxBackground.setOriginalY(0);
+            chatboxBackground.setOriginalWidth(0);
+            chatboxBackground.setOriginalHeight(0);
+
+            // Fixes issue with scrollbar being under side border
+            chatboxBackgroundLines.setOriginalWidth(22);
+            chatboxBackgroundLines.setOriginalHeight(16);
+            chatboxBackgroundLines.setOriginalY(3);
+        }
 
         chatboxParent.setOriginalHeight(viewportChatboxParent.getOriginalHeight());
         chatboxParent.setOriginalWidth(viewportChatboxParent.getOriginalWidth());
         chatboxParent.setHeightMode(WidgetSizeMode.ABSOLUTE);
         chatboxParent.setWidthMode(WidgetSizeMode.ABSOLUTE);
+
+        chatboxFrame.setOriginalWidth(viewportChatboxParent.getOriginalWidth());
 
         Widget[] bgLines = chatboxBackground.getChildren();
         if (bgLines != null) {

@@ -6,11 +6,13 @@ import dev.thource.runelite.resizablechat.ResizableChatConfig;
 import dev.thource.runelite.resizablechat.ResizableChatPlugin;
 import dev.thource.runelite.resizablechat.ResizeType;
 import dev.thource.runelite.resizablechat.ui.UI;
+import java.util.Arrays;
 import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
 import net.runelite.api.ScriptEvent;
 import net.runelite.api.Varbits;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
@@ -55,8 +57,7 @@ public class ResizeButtons extends UI {
      */
     @Override
     public void create(Widget parent) {
-        Widget chatbox = client.getWidget(WidgetInfo.CHATBOX);
-
+        Widget chatbox = client.getWidget(ComponentID.CHATBOX_FRAME);
         tmp = chatbox.createChild(-1, WidgetType.GRAPHIC);
 
         tmp.setOnDragListener((JavaScriptCallback) this::onDrag);
@@ -78,6 +79,15 @@ public class ResizeButtons extends UI {
         slider.setHasListener(true);
     }
 
+    @Override
+    public void destroy(Widget parent) {
+        Widget chatbox = client.getWidget(ComponentID.CHATBOX_FRAME);
+        Widget[] children = chatbox.getChildren();
+
+        children[tmp.getIndex()] = null;
+        children[slider.getIndex()] = null;
+    }
+
     /**
      * Handles button click events.
      *
@@ -91,6 +101,7 @@ public class ResizeButtons extends UI {
         String configKey = type == ResizeType.HORIZONTAL ? "chatWidth" : "chatHeight";
         int defaultValue = type == ResizeType.HORIZONTAL ? 519 : 142;
         plugin.configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, configKey, defaultValue);
+        onResize();
     }
 
     /**
@@ -100,7 +111,9 @@ public class ResizeButtons extends UI {
      */
     public void onDraggingFinished(ScriptEvent scriptEvent) {
         if (slider.isHidden()) return;
+
         plugin.stopDragging();
+        onResize();
     }
 
     /**
@@ -132,11 +145,21 @@ public class ResizeButtons extends UI {
     }
 
     public Point getButtonLocation() {
+        boolean isOpaque = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 0;
+
         Point location;
         if (type == ResizeType.VERTICAL) {
-            location = new Point(config.chatWidth() / 2 - (9 / 2), 0);
+            if (isOpaque) {
+                location = new Point(config.chatWidth() / 2 - 4, 0);
+            } else {
+                location = new Point(config.chatWidth() / 2 - 4, 3);
+            }
         } else {
-            location = new Point(config.chatWidth() - (16 / 2), config.chatHeight() / 2 - (9 / 2));
+            if (isOpaque) {
+                location = new Point(config.chatWidth() - 12, config.chatHeight() / 2 - 4);
+            } else {
+                location = new Point(config.chatWidth() - 8, config.chatHeight() / 2 - 4);
+            }
         }
         return location;
     }
@@ -157,17 +180,17 @@ public class ResizeButtons extends UI {
             return;
         }
 
-        boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 0;
+        boolean isOpaque = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 0;
         if (type == ResizeType.VERTICAL) {
-            buttonN = isTransparent ? CustomSprites.RESIZE_V_BROWN.getSpriteId() : CustomSprites.RESIZE_V.getSpriteId();
-            buttonH = isTransparent ? CustomSprites.RESIZE_V_BROWN_H.getSpriteId() : CustomSprites.RESIZE_V_H.getSpriteId();
+            buttonN = isOpaque ? CustomSprites.RESIZE_V_BROWN.getSpriteId() : CustomSprites.RESIZE_V.getSpriteId();
+            buttonH = isOpaque ? CustomSprites.RESIZE_V_BROWN_H.getSpriteId() : CustomSprites.RESIZE_V_H.getSpriteId();
             slider.setOriginalWidth(9);
             slider.setOriginalHeight(16);
             tmp.setOriginalWidth(9);
             tmp.setOriginalHeight(16);
         } else {
-            buttonN = isTransparent ? CustomSprites.RESIZE_H_BROWN.getSpriteId() : CustomSprites.RESIZE_H.getSpriteId();
-            buttonH = isTransparent ? CustomSprites.RESIZE_H_BROWN_H.getSpriteId() : CustomSprites.RESIZE_H_H.getSpriteId();
+            buttonN = isOpaque ? CustomSprites.RESIZE_H_BROWN.getSpriteId() : CustomSprites.RESIZE_H.getSpriteId();
+            buttonH = isOpaque ? CustomSprites.RESIZE_H_BROWN_H.getSpriteId() : CustomSprites.RESIZE_H_H.getSpriteId();
             slider.setOriginalWidth(16);
             slider.setOriginalHeight(9);
             tmp.setOriginalWidth(16);

@@ -137,6 +137,8 @@ public class ResizableChatPlugin extends Plugin {
 
     public void resetChatbox() {
         Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
+        Widget chatboxBackground = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+        Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
         if (chatboxParent == null || chatboxParent.getOriginalHeight() == 0) {
             return;
         }
@@ -145,12 +147,21 @@ public class ResizableChatPlugin extends Plugin {
 
         if (viewportChatboxParent != null && !viewportChatboxParent.isHidden()) {
             viewportChatboxParent.setOriginalHeight(165);
+            viewportChatboxParent.setOriginalWidth(519);
         }
 
         chatboxParent.setOriginalHeight(0);
         chatboxParent.setOriginalWidth(0);
         chatboxParent.setHeightMode(WidgetSizeMode.MINUS);
         chatboxParent.setWidthMode(WidgetSizeMode.MINUS);
+
+        chatboxBackground.setOriginalY(0);
+        chatboxBackground.setOriginalWidth(0);
+        chatboxBackground.setOriginalHeight(0);
+
+        chatboxBackgroundLines.setOriginalWidth(0);
+        chatboxBackgroundLines.setOriginalHeight(0);
+        chatboxBackgroundLines.setOriginalY(0);
 
         if (viewportChatboxParent != null && !viewportChatboxParent.isHidden()) {
             recursiveRevalidate(viewportChatboxParent);

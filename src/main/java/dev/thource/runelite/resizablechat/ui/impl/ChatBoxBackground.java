@@ -73,7 +73,7 @@ public class ChatBoxBackground extends UI {
         rightSide.setSpriteId(957);
         bottomSide.setSpriteId(956);
 
-        updateBox(config.chatWidth(), config.chatHeight());
+        updateBox(config.chatWidth(), config.chatHeight() + 5);
 
         boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
         if (isTransparent) {
@@ -107,11 +107,10 @@ public class ChatBoxBackground extends UI {
         setSize(bottomLeftBrace, BORDER_SIZE, BORDER_SIZE);
         setSize(bottomRightBrace, BORDER_SIZE, BORDER_SIZE);
 
-        setSize(leftSide, BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
-        setSize(topSide, config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
-        setSize(rightSide, BORDER_SIZE, config.chatHeight() - BORDER_SIZE * 2);
-        setSize(bottomSide, config.chatWidth() - BORDER_SIZE * 2, BORDER_SIZE);
-
+        setSize(leftSide, BORDER_SIZE, Math.max(0, height - BORDER_SIZE * 2));
+        setSize(topSide, width - BORDER_SIZE * 2, BORDER_SIZE);
+        setSize(rightSide, BORDER_SIZE, Math.max(0, height - BORDER_SIZE * 2));
+        setSize(bottomSide, width - BORDER_SIZE * 2, BORDER_SIZE);
 
         layoutWidget(topLeftBrace, x, y);
         layoutWidget(topRightBrace, x + width - BORDER_SIZE, y);
@@ -123,6 +122,14 @@ public class ChatBoxBackground extends UI {
         layoutWidget(rightSide, x + width - BORDER_SIZE, y + BORDER_SIZE);
         layoutWidget(bottomSide, x + BORDER_SIZE, y + height - BORDER_SIZE);
 
+        if (leftSide.getOriginalHeight() == 0) {
+            leftSide.setHidden(true);
+            rightSide.setHidden(true);
+        } else {
+            boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
+            leftSide.setHidden(isTransparent);
+            rightSide.setHidden(isTransparent);
+        }
     }
 
     public void setupBackground() {
@@ -146,9 +153,9 @@ public class ChatBoxBackground extends UI {
         topRightBrace.setHidden(state);
         bottomLeftBrace.setHidden(state);
         bottomRightBrace.setHidden(state);
-        leftSide.setHidden(state);
+        leftSide.setHidden(leftSide.getOriginalHeight() == 0 || state);
         topSide.setHidden(state);
-        rightSide.setHidden(state);
+        rightSide.setHidden(leftSide.getOriginalHeight() == 0 || state);
         bottomSide.setHidden(state);
     }
 
@@ -185,6 +192,6 @@ public class ChatBoxBackground extends UI {
     }
 
     public void onResize() {
-        updateBox(config.chatWidth(), config.chatHeight());
+        updateBox(config.chatWidth(), config.chatHeight() + 5);
     }
 }

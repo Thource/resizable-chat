@@ -237,7 +237,7 @@ public class ResizableChatPlugin extends Plugin {
             int newDimension;
 
             if (isDraggingV) {
-                newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(142, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
+                newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(28, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
                 if (newDimension != config.chatHeight()) {
                     configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
                 }
@@ -279,22 +279,22 @@ public class ResizableChatPlugin extends Plugin {
         boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
 
         if (isTransparent) {
-            viewportChatboxParent.setOriginalHeight(newHeight + 23);
+            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 4);
             viewportChatboxParent.setOriginalWidth(newWidth + 8);
-            chatboxBackground.setOriginalY(0);
+            chatboxBackground.setOriginalY(4);
             chatboxBackground.setOriginalWidth(8);
-            chatboxBackground.setOriginalHeight(0);
+            chatboxBackground.setOriginalHeight(4);
 
             // Fixes issue with scrollbar being under side border
             chatboxBackgroundLines.setOriginalWidth(28);
             chatboxBackgroundLines.setOriginalHeight(16);
             chatboxBackgroundLines.setOriginalY(3);
         } else {
-            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 4);
+            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 9);
             viewportChatboxParent.setOriginalWidth(newWidth + 4);
-            chatboxBackground.setOriginalY(0);
+            chatboxBackground.setOriginalY(5);
             chatboxBackground.setOriginalWidth(0);
-            chatboxBackground.setOriginalHeight(0);
+            chatboxBackground.setOriginalHeight(5);
 
             // Fixes issue with scrollbar being under side border
             chatboxBackgroundLines.setOriginalWidth(22);

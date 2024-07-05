@@ -102,9 +102,10 @@ public class ResizableChatPlugin extends Plugin {
         if (dialogsNeedFixing) {
             client.runScript(924);
             dialogsNeedFixing = false;
-            return;
         }
 
+        uiManager.hideResizingHandles(isChatHidden() || (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()));
+        uiManager.updateHiddenState();
         checkResizing();
         uiManager.create();
         resizeChatbox();
@@ -145,19 +146,59 @@ public class ResizableChatPlugin extends Plugin {
         chatboxParent.setHeightMode(WidgetSizeMode.MINUS);
         chatboxParent.setWidthMode(WidgetSizeMode.MINUS);
 
-        chatboxBackground.setOriginalY(0);
-        chatboxBackground.setOriginalWidth(0);
-        chatboxBackground.setOriginalHeight(0);
+        if (chatboxBackground != null) {
+            chatboxBackground.setOriginalY(0);
+            chatboxBackground.setOriginalWidth(0);
+            chatboxBackground.setOriginalHeight(0);
+        }
 
-        chatboxBackgroundLines.setOriginalWidth(0);
-        chatboxBackgroundLines.setOriginalHeight(0);
-        chatboxBackgroundLines.setOriginalY(0);
+        if (chatboxBackgroundLines != null) {
+            chatboxBackgroundLines.setOriginalWidth(0);
+            chatboxBackgroundLines.setOriginalHeight(0);
+            chatboxBackgroundLines.setOriginalY(0);
+        }
 
         if (viewportChatboxParent != null && !viewportChatboxParent.isHidden()) {
             recursiveRevalidate(viewportChatboxParent);
         } else {
             recursiveRevalidate(chatboxParent);
         }
+
+        // Resize the buttons
+
+        Widget chatboxButtons = client.getWidget(ComponentID.CHATBOX_BUTTONS);
+        if (chatboxButtons != null) {
+            chatboxButtons.setOriginalWidth(519);
+        }
+
+        Widget chatboxButtonsContainer = client.getWidget(162, 3);
+        if (chatboxButtonsContainer != null) {
+            chatboxButtonsContainer.setOriginalWidth(519);
+        }
+
+        Widget reportButtonWidget = client.getWidget(162, 31);
+        if (reportButtonWidget != null) {
+            reportButtonWidget.setOriginalWidth(REPORT_BUTTON_WIDTH);
+        }
+
+        int[] buttonWidgets = new int[]{27, 23, 19, 15, 11, 7, 4};
+        for (int i = 0; i < buttonWidgets.length; i++) {
+            int widgetId = buttonWidgets[i];
+            Widget widget = client.getWidget(162, widgetId);
+            if (widget == null) {
+                continue;
+            }
+
+            widget.setOriginalWidth(BUTTON_WIDTH);
+            widget.setOriginalX(BUTTON_SPACING + (i * (BUTTON_WIDTH + BUTTON_SPACING * 2)) + REPORT_BUTTON_WIDTH + BUTTON_SPACING * 2);
+
+            // Resize the button background
+            Widget backgroundWidget = client.getWidget(162, widgetId + 1);
+            if (backgroundWidget != null) {
+                backgroundWidget.setOriginalWidth(BUTTON_WIDTH);
+            }
+        }
+
 
         client.refreshChat();
 
@@ -172,16 +213,12 @@ public class ResizableChatPlugin extends Plugin {
         uiManager.onVarbitChanged();
     }
 
-    public boolean shouldReset() {
+    public boolean isChatHidden() {
         Widget viewportChatboxParent = getViewportChatboxParent();
         Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
-        boolean isChatHidden = viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
-        uiManager.hideResizingHandles(isChatHidden || (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()));
-        uiManager.updateHiddenState();
-
-        return isChatHidden;
+        return viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
     }
 
     public void startDragging(boolean isVertical) {
@@ -214,7 +251,7 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     protected boolean shouldRender() {
-        if (shouldReset()) {
+        if (isChatHidden()) {
             return false;
         }
         if (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()) {
@@ -226,34 +263,37 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     public void checkResizing() {
-        if (!shouldRender()) {
+        if (!shouldRender() || (!isDraggingV && !isDraggingH)) {
             return;
         }
 
         if (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()) {
+            stopDragging();
             return;
         }
 
-        if (isDraggingV || isDraggingH) {
-            Point mousePos = client.getMouseCanvasPosition();
-            int newDimension;
+        Point mousePos = client.getMouseCanvasPosition();
+        int newDimension;
 
-            if (isDraggingV) {
-                newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(28, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
-                if (newDimension != config.chatHeight()) {
-                    configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
-                }
-            } else if (isDraggingH) {
-                newDimension = Math.min(client.getCanvasWidth() - 24, Math.max(300, dragStartValue + (mousePos.getX() - dragStartPos.getX())));
-                if (newDimension != config.chatWidth()) {
-                    configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatWidth", newDimension);
-                }
+        if (isDraggingV) {
+            newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(28, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
+            if (newDimension != config.chatHeight()) {
+              configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
+            }
+        } else if (isDraggingH) {
+            newDimension = Math.min(client.getCanvasWidth() - 24, Math.max(300, dragStartValue + (mousePos.getX() - dragStartPos.getX())));
+            if (newDimension != config.chatWidth()) {
+              configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatWidth", newDimension);
             }
         }
     }
 
+    private boolean isChatboxTransparent() {
+        return client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
+    }
+
     private void resizeChatbox() {
-        if (shouldReset()) {
+        if (isChatHidden()) {
             resetChatbox();
             return;
         }
@@ -261,11 +301,14 @@ public class ResizableChatPlugin extends Plugin {
         Widget viewportChatboxParent = getViewportChatboxParent();
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
+        boolean isChatboxTransparent = isChatboxTransparent();
         int oldHeight = viewportChatboxParent.getOriginalHeight();
         int newHeight = config.chatHeight();
+        int heightPadding = isChatboxTransparent ? 27 : 32;
         int oldWidth = viewportChatboxParent.getOriginalWidth();
         int newWidth = config.chatWidth();
-        if (chatboxFrame == null || (oldHeight == newHeight + 23 && oldWidth == newWidth && chatboxFrame.getOriginalWidth() == newWidth)) {
+        int widthPadding = isChatboxTransparent ? 8 : 4;
+        if (chatboxFrame == null || (oldHeight == newHeight + heightPadding && oldWidth == newWidth + widthPadding && chatboxFrame.getOriginalWidth() == newWidth + widthPadding)) {
             return;
         }
 
@@ -280,30 +323,24 @@ public class ResizableChatPlugin extends Plugin {
 
         uiManager.setHidden(false);
 
-        boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
-
-        if (isTransparent) {
-            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 4);
-            viewportChatboxParent.setOriginalWidth(newWidth + 8);
+        viewportChatboxParent.setOriginalHeight(newHeight + heightPadding);
+        viewportChatboxParent.setOriginalWidth(newWidth + widthPadding);
+        chatboxBackgroundLines.setOriginalHeight(16);
+        chatboxBackgroundLines.setOriginalY(3);
+        if (isChatboxTransparent) {
             chatboxBackground.setOriginalY(4);
             chatboxBackground.setOriginalWidth(8);
             chatboxBackground.setOriginalHeight(4);
 
             // Fixes issue with scrollbar being under side border
             chatboxBackgroundLines.setOriginalWidth(28);
-            chatboxBackgroundLines.setOriginalHeight(16);
-            chatboxBackgroundLines.setOriginalY(3);
         } else {
-            viewportChatboxParent.setOriginalHeight(newHeight + 23 + 9);
-            viewportChatboxParent.setOriginalWidth(newWidth + 4);
             chatboxBackground.setOriginalY(5);
             chatboxBackground.setOriginalWidth(0);
             chatboxBackground.setOriginalHeight(5);
 
             // Fixes issue with scrollbar being under side border
             chatboxBackgroundLines.setOriginalWidth(22);
-            chatboxBackgroundLines.setOriginalHeight(16);
-            chatboxBackgroundLines.setOriginalY(3);
         }
 
         chatboxParent.setOriginalHeight(viewportChatboxParent.getOriginalHeight());
@@ -331,13 +368,19 @@ public class ResizableChatPlugin extends Plugin {
         // Resize the buttons
 
         chatboxButtons.setOriginalWidth(newWidth);
-        client.getWidget(162, 3).setOriginalWidth(newWidth);
+        Widget chatboxButtonsContainer = client.getWidget(162, 3);
+        if (chatboxButtonsContainer != null) {
+            chatboxButtonsContainer.setOriginalWidth(newWidth);
+        }
 
         float chatboxButtonScale = (newWidth - TOTAL_BUTTON_SPACING) / (519f - TOTAL_BUTTON_SPACING);
         int reportButtonWidth = (int) Math.floor(REPORT_BUTTON_WIDTH * chatboxButtonScale);
         int buttonWidth = (int) Math.floor(BUTTON_WIDTH * chatboxButtonScale);
 
-        client.getWidget(162, 31).setOriginalWidth(reportButtonWidth);
+        Widget reportButtonWidget = client.getWidget(162, 31);
+        if (reportButtonWidget != null) {
+            reportButtonWidget.setOriginalWidth(reportButtonWidth);
+        }
 
         int[] buttonWidgets = new int[]{27, 23, 19, 15, 11, 7, 4};
         for (int i = 0; i < buttonWidgets.length; i++) {

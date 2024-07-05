@@ -60,7 +60,11 @@ public class ResizableChatPlugin extends Plugin {
     @Getter
     private boolean inOverlayDragMode;
     private boolean dialogsNeedFixing;
-    private boolean isHandleKeybindPressed;
+
+    private static final int BUTTON_WIDTH = 56;
+    private static final int REPORT_BUTTON_WIDTH = 79;
+    private static final int BUTTON_SPACING = 3;
+    private static final int TOTAL_BUTTON_SPACING = 48;
 
     @Override
     protected void startUp() {
@@ -100,7 +104,6 @@ public class ResizableChatPlugin extends Plugin {
             dialogsNeedFixing = false;
             return;
         }
-
 
         checkResizing();
         uiManager.create();
@@ -158,6 +161,8 @@ public class ResizableChatPlugin extends Plugin {
 
         client.refreshChat();
 
+        uiManager.setHidden(true);
+
         // This solves a bug that occurs after chat is hidden
         dialogsNeedFixing = true;
     }
@@ -173,7 +178,8 @@ public class ResizableChatPlugin extends Plugin {
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
         boolean isChatHidden = viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
-        uiManager.hideButtons(isChatHidden || (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed));
+        uiManager.hideResizingHandles(isChatHidden || (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()));
+        uiManager.updateHiddenState();
 
         return isChatHidden;
     }
@@ -211,7 +217,7 @@ public class ResizableChatPlugin extends Plugin {
         if (shouldReset()) {
             return false;
         }
-        if (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed) {
+        if (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()) {
             return false;
         }
 
@@ -224,7 +230,7 @@ public class ResizableChatPlugin extends Plugin {
             return;
         }
 
-        if (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed) {
+        if (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()) {
             return;
         }
 
@@ -266,10 +272,13 @@ public class ResizableChatPlugin extends Plugin {
         Widget chatboxParent = client.getWidget(ComponentID.CHATBOX_PARENT);
         Widget chatboxBackground = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
         Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
+        Widget chatboxButtons = client.getWidget(ComponentID.CHATBOX_BUTTONS);
 
-        if (chatboxParent == null || chatboxBackground == null || chatboxBackgroundLines == null) {
+        if (chatboxParent == null || chatboxBackground == null || chatboxBackgroundLines == null || chatboxButtons == null) {
             return;
         }
+
+        uiManager.setHidden(false);
 
         boolean isTransparent = client.getVarbitValue(Varbits.TRANSPARENT_CHATBOX) == 1;
 
@@ -319,6 +328,41 @@ public class ResizableChatPlugin extends Plugin {
             }
         }
 
+        // Resize the buttons
+
+        chatboxButtons.setOriginalWidth(newWidth);
+        client.getWidget(162, 3).setOriginalWidth(newWidth);
+
+        float chatboxButtonScale = (newWidth - TOTAL_BUTTON_SPACING) / (519f - TOTAL_BUTTON_SPACING);
+        int reportButtonWidth = (int) Math.floor(REPORT_BUTTON_WIDTH * chatboxButtonScale);
+        int buttonWidth = (int) Math.floor(BUTTON_WIDTH * chatboxButtonScale);
+
+        client.getWidget(162, 31).setOriginalWidth(reportButtonWidth);
+
+        int[] buttonWidgets = new int[]{27, 23, 19, 15, 11, 7, 4};
+        for (int i = 0; i < buttonWidgets.length; i++) {
+            int widgetId = buttonWidgets[i];
+            Widget widget = client.getWidget(162, widgetId);
+            if (widget == null) {
+                continue;
+            }
+
+            widget.setOriginalWidth(buttonWidth);
+            widget.setOriginalX(BUTTON_SPACING + (i * (buttonWidth + BUTTON_SPACING * 2)) + reportButtonWidth + BUTTON_SPACING * 2);
+
+            // Resize the button background
+            Widget backgroundWidget = client.getWidget(162, widgetId + 1);
+            if (backgroundWidget == null) {
+                continue;
+            }
+
+            if (config.stretchChatButtons() || buttonWidth < BUTTON_WIDTH) {
+                backgroundWidget.setOriginalWidth(buttonWidth);
+            } else {
+                backgroundWidget.setOriginalWidth(BUTTON_WIDTH);
+            }
+        }
+
         recursiveRevalidate(viewportChatboxParent);
         client.refreshChat();
 
@@ -356,11 +400,7 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     void setResizingKeybindPressed(boolean pressed) {
-        isHandleKeybindPressed = pressed;
-
-        if (!config.alwaysShowResizingHandles() || !pressed) {
-            uiManager.hideButtons(!pressed);
-        }
+        uiManager.setHandleKeybindPressed(pressed);
     }
 
     @Provides

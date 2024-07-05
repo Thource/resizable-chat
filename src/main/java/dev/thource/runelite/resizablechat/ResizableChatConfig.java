@@ -36,6 +36,15 @@ public interface ResizableChatConfig extends Config {
     }
 
     @ConfigItem(
+        keyName = "stretchChatButtons",
+        name = "Stretch chat buttons",
+        description = "Should the chat buttons stretch when the chat width is changed?"
+    )
+    default boolean stretchChatButtons() {
+        return true;
+    }
+
+    @ConfigItem(
             keyName = "alwaysShowResizingHandles",
             name = "Always show resizing handles",
             description = "Sets whether the handles should always be shown, or just when the keybind is held.",
@@ -54,5 +63,4 @@ public interface ResizableChatConfig extends Config {
     default Keybind resizingHandleKeybind() {
         return Keybind.CTRL;
     }
-
 }

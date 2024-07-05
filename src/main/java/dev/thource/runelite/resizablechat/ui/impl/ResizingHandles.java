@@ -6,8 +6,8 @@ import dev.thource.runelite.resizablechat.ResizableChatConfig;
 import dev.thource.runelite.resizablechat.ResizableChatPlugin;
 import dev.thource.runelite.resizablechat.ResizeType;
 import dev.thource.runelite.resizablechat.ui.UI;
-import java.util.Arrays;
 import lombok.Getter;
+import lombok.Setter;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
 import net.runelite.api.ScriptEvent;
@@ -15,14 +15,13 @@ import net.runelite.api.Varbits;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetType;
 
 /**
  * UI class for resize buttons.
  */
 @Singleton
-public class ResizeButtons extends UI {
+public class ResizingHandles extends UI {
 
     private final ResizeType type;
     private final Client client;
@@ -35,6 +34,7 @@ public class ResizeButtons extends UI {
     private Widget tmp;
     private int buttonN = -1;
     private int buttonH = -1;
+    @Getter @Setter private boolean isHidden;
 
     /**
      * Constructor for ResizeButtons.
@@ -43,7 +43,7 @@ public class ResizeButtons extends UI {
      * @param client The RuneLite client.
      * @param plugin The ResizableChatPlugin instance.
      */
-    public ResizeButtons(ResizeType type, Client client, ResizableChatPlugin plugin) {
+    public ResizingHandles(ResizeType type, Client client, ResizableChatPlugin plugin) {
         this.type = type;
         this.client = client;
         this.config = plugin.getConfig();

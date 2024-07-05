@@ -3,6 +3,7 @@ package dev.thource.runelite.resizablechat;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.Keybind;
 import net.runelite.client.config.Range;
 
 /**
@@ -24,7 +25,7 @@ public interface ResizableChatConfig extends Config {
         return 142;
     }
 
-    @Range(min = 519)
+    @Range(min = 300)
     @ConfigItem(
             keyName = "chatWidth",
             name = "Chat width",
@@ -35,16 +36,23 @@ public interface ResizableChatConfig extends Config {
     }
 
     @ConfigItem(
-            keyName = "resizingHandleMode",
-            name = "Resizing handle mode",
-            description = "Sets the behaviour for when the resizing handle should be shown."
-                    + "<br><br>"
-                    + "Always: Always show the handles<br>"
-                    + "Drag mode: Only show the handles when holding the drag hotkey (RuneLite config)<br>"
-                    + "Never: Never show the handles"
+            keyName = "alwaysShowResizingHandles",
+            name = "Always show resizing handles",
+            description = "Sets whether the handles should always be shown, or just when the keybind is held.",
+            position = 4
     )
-    default ResizingHandleMode resizingHandleMode() {
-        return ResizingHandleMode.ALWAYS;
+    default boolean alwaysShowResizingHandles() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "resizingHandleKeybind",
+            name = "Resizing handle keybind",
+            description = "Show the resizing handles when this keybind is held.",
+            position = 5
+    )
+    default Keybind resizingHandleKeybind() {
+        return Keybind.CTRL;
     }
 
 }

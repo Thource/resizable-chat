@@ -18,12 +18,11 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetSizeMode;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.SpriteManager;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.util.HotkeyListener;
 
 import javax.inject.Inject;
 
@@ -45,9 +44,11 @@ public class ResizableChatPlugin extends Plugin {
     @Inject
     private ResizableChatConfig config;
     @Inject
-    private RuneLiteConfig runeLiteConfig;
-    @Inject
     public SpriteManager spriteManager;
+    @Inject
+    public HandleInputListener handleInputListener;
+    @Inject
+    public KeyManager keyManager;
     @Inject
     public UiManager uiManager;
     @Inject
@@ -56,35 +57,21 @@ public class ResizableChatPlugin extends Plugin {
     protected boolean isDraggingH;
     protected Point dragStartPos = null;
     protected int dragStartValue;
-    HotkeyListener hotkeyListener;
     @Getter
     private boolean inOverlayDragMode;
     private boolean dialogsNeedFixing;
+    private boolean isHandleKeybindPressed;
 
     @Override
     protected void startUp() {
-
         spriteManager.addSpriteOverrides(CustomSprites.values());
-
-        hotkeyListener = new HotkeyListener(runeLiteConfig::dragHotkey) {
-            @Override
-            public void hotkeyPressed() {
-                inOverlayDragMode = true;
-            }
-
-            @Override
-            public void hotkeyReleased() {
-                if (inOverlayDragMode) {
-                    inOverlayDragMode = false;
-                }
-            }
-        };
-
+        keyManager.registerKeyListener(handleInputListener);
     }
 
     @Override
     protected void shutDown() {
         spriteManager.removeSpriteOverrides(CustomSprites.values());
+        keyManager.unregisterKeyListener(handleInputListener);
         clientThread.invoke(() -> {
             uiManager.shutDown();
             resetChatbox();
@@ -185,11 +172,10 @@ public class ResizableChatPlugin extends Plugin {
         Widget chatboxBackgroundLines = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
         Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
 
-        boolean state = viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
+        boolean isChatHidden = viewportChatboxParent == null || (chatboxBackgroundLines == null || chatboxBackgroundLines.isHidden()) || chatboxFrame == null;
+        uiManager.hideButtons(isChatHidden || (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed));
 
-        uiManager.hideButtons(state);
-
-        return state;
+        return isChatHidden;
     }
 
     public void startDragging(boolean isVertical) {
@@ -225,8 +211,7 @@ public class ResizableChatPlugin extends Plugin {
         if (shouldReset()) {
             return false;
         }
-        if (config.resizingHandleMode() == ResizingHandleMode.NEVER
-                || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !isInOverlayDragMode())) {
+        if (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed) {
             return false;
         }
 
@@ -239,7 +224,7 @@ public class ResizableChatPlugin extends Plugin {
             return;
         }
 
-        if (config.resizingHandleMode() == ResizingHandleMode.NEVER || (config.resizingHandleMode() == ResizingHandleMode.DRAG && !isInOverlayDragMode())) {
+        if (!config.alwaysShowResizingHandles() && !isHandleKeybindPressed) {
             return;
         }
 
@@ -253,14 +238,13 @@ public class ResizableChatPlugin extends Plugin {
                     configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
                 }
             } else if (isDraggingH) {
-                newDimension = Math.min(client.getCanvasWidth() - 24, Math.max(519, dragStartValue + (mousePos.getX() - dragStartPos.getX())));
+                newDimension = Math.min(client.getCanvasWidth() - 24, Math.max(300, dragStartValue + (mousePos.getX() - dragStartPos.getX())));
                 if (newDimension != config.chatWidth()) {
                     configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatWidth", newDimension);
                 }
             }
         }
     }
-
 
     private void resizeChatbox() {
         if (shouldReset()) {
@@ -368,6 +352,14 @@ public class ResizableChatPlugin extends Plugin {
             for (Widget child : nestedChildren) {
                 recursiveRevalidate(child);
             }
+        }
+    }
+
+    void setResizingKeybindPressed(boolean pressed) {
+        isHandleKeybindPressed = pressed;
+
+        if (!config.alwaysShowResizingHandles() || !pressed) {
+            uiManager.hideButtons(!pressed);
         }
     }
 

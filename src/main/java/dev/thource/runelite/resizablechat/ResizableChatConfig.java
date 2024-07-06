@@ -45,10 +45,19 @@ public interface ResizableChatConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "expandChatKeybind",
+            name = "Expand chat keybind",
+            description = "Double the chat height when this keybind is held."
+    )
+    default Keybind expandChatKeybind() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(
             keyName = "alwaysShowResizingHandles",
             name = "Always show resizing handles",
             description = "Sets whether the handles should always be shown, or just when the keybind is held.",
-            position = 4
+            position = 100
     )
     default boolean alwaysShowResizingHandles() {
         return true;
@@ -58,7 +67,7 @@ public interface ResizableChatConfig extends Config {
             keyName = "resizingHandleKeybind",
             name = "Resizing handle keybind",
             description = "Show the resizing handles when this keybind is held.",
-            position = 5
+            position = 101
     )
     default Keybind resizingHandleKeybind() {
         return Keybind.CTRL;

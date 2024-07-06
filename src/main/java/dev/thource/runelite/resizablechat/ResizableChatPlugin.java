@@ -428,6 +428,12 @@ public class ResizableChatPlugin extends Plugin {
             }
         }
 
+        // Adjust scroll when shrinking chat, so that the bottom chat line stays at the bottom of the box
+        if (oldHeight != 165 && oldWidth != 519) {
+            int heightDifference = newHeight - (oldHeight - heightPadding);
+            client.setVarcIntValue(7, client.getVarcIntValue(7) - heightDifference);
+        }
+
         recursiveRevalidate(viewportChatboxParent);
         client.refreshChat();
 

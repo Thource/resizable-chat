@@ -3,6 +3,7 @@ package dev.thource.runelite.resizablechat;
 import com.google.inject.Provides;
 import dev.thource.runelite.resizablechat.ui.UiManager;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -46,7 +47,7 @@ public class ResizableChatPlugin extends Plugin {
     @Inject
     public SpriteManager spriteManager;
     @Inject
-    public HandleInputListener handleInputListener;
+    public ResizableChatKeyListener resizableChatKeyListener;
     @Inject
     public KeyManager keyManager;
     @Inject
@@ -60,6 +61,8 @@ public class ResizableChatPlugin extends Plugin {
     @Getter
     private boolean inOverlayDragMode;
     private boolean dialogsNeedFixing;
+    @Setter
+    private boolean isExpandChatKeybindPressed;
 
     private static final int BUTTON_WIDTH = 56;
     private static final int REPORT_BUTTON_WIDTH = 79;
@@ -69,13 +72,13 @@ public class ResizableChatPlugin extends Plugin {
     @Override
     protected void startUp() {
         spriteManager.addSpriteOverrides(CustomSprites.values());
-        keyManager.registerKeyListener(handleInputListener);
+        keyManager.registerKeyListener(resizableChatKeyListener);
     }
 
     @Override
     protected void shutDown() {
         spriteManager.removeSpriteOverrides(CustomSprites.values());
-        keyManager.unregisterKeyListener(handleInputListener);
+        keyManager.unregisterKeyListener(resizableChatKeyListener);
         clientThread.invoke(() -> {
             uiManager.shutDown();
             resetChatbox();
@@ -237,7 +240,7 @@ public class ResizableChatPlugin extends Plugin {
         }
 
         dragStartPos = client.getMouseCanvasPosition();
-        dragStartValue = isVertical ? config.chatHeight() : config.chatWidth();
+        dragStartValue = isVertical ? getTargetHeight() : config.chatWidth();
     }
 
     @Subscribe
@@ -273,6 +276,14 @@ public class ResizableChatPlugin extends Plugin {
         return false;
     }
 
+    private int getTargetHeight() {
+        if (isExpandChatKeybindPressed) {
+            return Math.min(client.getCanvasHeight() - 24, config.chatHeight() * 2);
+        }
+
+        return config.chatHeight();
+    }
+
     public void checkResizing() {
         if (!shouldRender() || (!isDraggingV && !isDraggingH)) {
             return;
@@ -288,7 +299,7 @@ public class ResizableChatPlugin extends Plugin {
 
         if (isDraggingV) {
             newDimension = Math.min(client.getCanvasHeight() - 24, Math.max(28, dragStartValue + (dragStartPos.getY() - mousePos.getY())));
-            if (newDimension != config.chatHeight()) {
+            if (newDimension != getTargetHeight()) {
               configManager.setConfiguration(ResizableChatConfig.CONFIG_GROUP, "chatHeight", newDimension);
             }
         } else if (isDraggingH) {
@@ -314,7 +325,7 @@ public class ResizableChatPlugin extends Plugin {
 
         boolean isChatboxTransparent = isChatboxTransparent();
         int oldHeight = viewportChatboxParent.getOriginalHeight();
-        int newHeight = config.chatHeight();
+        int newHeight = getTargetHeight();
         int heightPadding = isChatboxTransparent ? 27 : 32;
         int oldWidth = viewportChatboxParent.getOriginalWidth();
         int newWidth = config.chatWidth();

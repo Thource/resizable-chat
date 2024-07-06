@@ -251,15 +251,26 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     protected boolean shouldRender() {
-        if (isChatHidden()) {
-            return false;
-        }
-        if (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()) {
+        if (anyOverlappingOverlayOpen() || isChatHidden() || (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed())) {
             return false;
         }
 
         Widget viewportChatboxParent = getViewportChatboxParent();
         return viewportChatboxParent != null;
+    }
+
+    private boolean anyOverlappingOverlayOpen() {
+        int[] overlayWidgets = new int[]{16, 18};
+        for (int widgetId : overlayWidgets) {
+            Widget widget = client.getWidget(164, widgetId);
+            if (widget != null) {
+                if (widget.getNestedChildren().length > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public void checkResizing() {
@@ -293,7 +304,7 @@ public class ResizableChatPlugin extends Plugin {
     }
 
     private void resizeChatbox() {
-        if (isChatHidden()) {
+        if (anyOverlappingOverlayOpen() || isChatHidden()) {
             resetChatbox();
             return;
         }

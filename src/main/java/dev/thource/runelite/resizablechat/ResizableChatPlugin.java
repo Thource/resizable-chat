@@ -32,7 +32,7 @@ import javax.inject.Inject;
  * playing in resizable mode.
  */
 @Slf4j
-@PluginDescriptor(name = "Resizable Chat", description = "Allows the chat to be resized when playing in resizable mode with transparent " + "chat.", tags = {"resize chat"})
+@PluginDescriptor(name = "Resizable Chat", description = "Allows the chat to be resized when playing in resizable mode.", tags = {"resize chat"})
 public class ResizableChatPlugin extends Plugin {
 
     @Getter

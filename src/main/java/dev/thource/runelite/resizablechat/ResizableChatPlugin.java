@@ -509,6 +509,8 @@ public class ResizableChatPlugin extends Plugin {
 
     void setResizingKeybindPressed(boolean pressed) {
         uiManager.setHandleKeybindPressed(pressed);
+
+        stopDragging();
     }
 
     @Provides

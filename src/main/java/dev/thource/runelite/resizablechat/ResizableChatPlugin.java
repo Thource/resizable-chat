@@ -13,6 +13,8 @@ import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.FocusChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ResizeableChanged;
+import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
@@ -63,11 +65,13 @@ public class ResizableChatPlugin extends Plugin {
     private boolean dialogsNeedFixing;
     @Setter
     private boolean isExpandChatKeybindPressed;
+    private float scrolledUpLines = 0;
 
     private static final int BUTTON_WIDTH = 56;
     private static final int REPORT_BUTTON_WIDTH = 79;
     private static final int BUTTON_SPACING = 3;
     private static final int TOTAL_BUTTON_SPACING = 48;
+    private boolean scrollEventFiring;
 
     @Override
     protected void startUp() {
@@ -84,6 +88,37 @@ public class ResizableChatPlugin extends Plugin {
             resetChatbox();
             client.runScript(924);
         });
+    }
+
+    @Subscribe
+    public void onScriptPreFired(ScriptPreFired e) {
+        final int scriptId = e.getScriptId();
+        if (scriptId >= 32 && scriptId <= 36) {
+            Object[] args = e.getScriptEvent().getArguments();
+            if (args.length > 3 && (int) args[2] == ComponentID.CHATBOX_MESSAGE_LINES) {
+                scrollEventFiring = true;
+            }
+        }
+    }
+
+    @Subscribe
+    public void onScriptPostFired(ScriptPostFired e) {
+        final int scriptId = e.getScriptId();
+        if (scriptId == 924) {
+            log.info("Script 924 fired");
+            resizeChatbox();
+        } else if (scriptId == 663) {
+            updateScroll();
+        } else if (scrollEventFiring && scriptId >= 32 && scriptId <= 36) {
+            scrollEventFiring = false;
+
+            int val = client.getVarcIntValue(7);
+            Widget chatboxMessageLines = client.getWidget(ComponentID.CHATBOX_MESSAGE_LINES);
+            if (chatboxMessageLines != null) {
+                int upscroll = chatboxMessageLines.getScrollHeight() - (chatboxMessageLines.getHeight() + val);
+                scrolledUpLines = upscroll / 14f;
+            }
+        }
     }
 
     @Subscribe
@@ -428,16 +463,18 @@ public class ResizableChatPlugin extends Plugin {
             }
         }
 
-        // Adjust scroll when shrinking chat, so that the bottom chat line stays at the bottom of the box
-        if (oldHeight != 165 && oldWidth != 519) {
-            int heightDifference = newHeight - (oldHeight - heightPadding);
-            client.setVarcIntValue(7, client.getVarcIntValue(7) - heightDifference);
-        }
-
         recursiveRevalidate(viewportChatboxParent);
+        updateScroll();
         client.refreshChat();
 
         uiManager.onChatBoxResized();
+    }
+
+    private void updateScroll() {
+        Widget chatboxMessageLines = client.getWidget(ComponentID.CHATBOX_MESSAGE_LINES);
+        if (chatboxMessageLines != null) {
+            client.setVarcIntValue(7, (int) (chatboxMessageLines.getScrollHeight() - chatboxMessageLines.getHeight() - (scrolledUpLines * 14)));
+        }
     }
 
 

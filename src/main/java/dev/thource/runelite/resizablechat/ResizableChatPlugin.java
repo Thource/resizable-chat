@@ -105,7 +105,6 @@ public class ResizableChatPlugin extends Plugin {
     public void onScriptPostFired(ScriptPostFired e) {
         final int scriptId = e.getScriptId();
         if (scriptId == 924) {
-            log.info("Script 924 fired");
             resizeChatbox();
         } else if (scriptId == 663) {
             updateScroll();

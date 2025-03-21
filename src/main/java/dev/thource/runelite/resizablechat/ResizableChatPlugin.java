@@ -77,6 +77,7 @@ public class ResizableChatPlugin extends Plugin {
     protected void startUp() {
         spriteManager.addSpriteOverrides(CustomSprites.values());
         keyManager.registerKeyListener(resizableChatKeyListener);
+        clientThread.invoke(this::updateUiState);
     }
 
     @Override
@@ -141,6 +142,10 @@ public class ResizableChatPlugin extends Plugin {
             dialogsNeedFixing = false;
         }
 
+        updateUiState();
+    }
+
+    private void updateUiState() {
         uiManager.hideResizingHandles(isChatHidden() || (!config.alwaysShowResizingHandles() && !uiManager.isHandleKeybindPressed()));
         uiManager.updateHiddenState();
         checkResizing();
